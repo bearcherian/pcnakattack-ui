@@ -1,0 +1,213 @@
+var lastItemIndex = 0;
+var reachedBottom = false;
+var loadingItems = false;
+var currentylShowing = "";
+
+function itemHtml(item){
+
+	item.modalSize = 'small';
+    item.displayName = "@"+item.username;
+    item.timeAgo = timeAgo(item.created);
+    item.localCreatedTime = localCreatedTime(item.created);
+
+	var mfpMethodTemplate = "showInline(\"reveal_{{id}}\")";
+
+	if (item.item_type == 'instagrams' || item.media_type !=null) {
+		item.mediaClass = "media";
+		item.modalSize = 'large';
+		mfpMethodTemplate = "showImage(\"{{&media_url}}{{&image_std}}\",\"{{text}}\")";
+	}
+
+	if (item.item_type == 'tweets') {
+		item.link = "http://www.twitter.com/"+item.username+"/status/"+item.id;
+		item.tiny_icon = "<%= image_path 'tiny_twitter.png' %>";
+	}
+
+	if (item.item_type == "instagrams") {
+		item.tiny_icon = "<%= image_path 'tiny_instagram.png'%>";
+	}
+
+	if (item.item_type == "youtube") {
+		item.tiny_icon = "<%= image_path 'tiny_youtube.png' %>";
+        item.displayName = item.user_fullname;
+	}
+
+
+
+	var itemModalTemplate = "<div id=\"reveal_{{id}}\" class='reveal-modal small' data-reveal>" +
+				"<div class='text'>" +
+				"<p class='content text-right'>\"{{text}}\"</p>" +
+				"<div class='userinfo'>" +
+				"<img class='profile_picture' src='{{profile_image}}'/>" +
+				"<span class='username'>@{{username}}</span>" +
+				"</div>" +
+				"</div>" +
+				"</div>";
+
+	var itemTemplate = "<li class='{{item_type}}'><div class='item {{item_type}} {{mediaClass}} {{media_type}}'>" +
+				"{{#media_url}}<div class='media-item'>" +
+				"<img src='{{media_url}}'/>" +
+				"</div>{{/media_url}}" +
+				"{{#image_std}}<div class='media-item'>" +
+				"<img src='{{image_std}}'/>" +
+				"</div>{{/image_std}}" +
+				"<div class='text'>" +
+				"<p class='content text-right'>\"{{text}}\"</p>" +
+				"<div class='userinfo'>" +
+				"<img class='profile_picture' src='{{profile_image}}'/>" +
+				"<span class='username'>{{displayName}}" +
+                "<span class='timeAgo' title='{{localCreatedTime}}'>{{timeAgo}}</span></span>" +
+				"</div>" +
+				"</div>" +
+				"<a class='item_link' href='{{link}}' target='_blank'>" +
+				"<img class='tiny-icon' src='{{tiny_icon}}'/>" +
+				"</a>" +
+				itemModalTemplate +
+				"</div></li>";
+
+	return Mustache.render(itemTemplate+itemModalTemplate, item);
+}
+
+function showOnly(className) {
+    showAll();
+    $("div.item:not(."+className+")").unwrap().wrap("<div/>").hide();
+    currentylShowing = className;
+}
+
+function showAll() {
+    $("div.item").unwrap().wrap("<li/>").show();
+    currentylShowing = "";
+}
+
+function timeAgo(timeString) {
+
+    var d = new Date(timeString.replace(/-/g, "/") + " UTC");
+    var now = new Date();
+
+    var agoMs = now.getTime() - d.getTime();
+
+    if (agoMs <  43200000/12) {
+        return d.toLocaleTimeString();
+    }
+
+    var s = agoMs/1000;
+    var m = s/60;
+    var h = ((agoMs/1000)/60/60);
+    var D = h/24;
+    var Wk = D/7;
+
+    if (Wk > 2)
+        return Math.round(Wk) + " weeks ago";
+    if (D > 2)
+        return Math.round(D) + " days ago";
+    if (h > 2)
+        return Math.round(h) + " hours ago";
+    if (m > 1)
+        return Math.round(m) + " minutes ago";
+
+    return Math.round(s) + " seconds ago";
+}
+
+function localCreatedTime(timeString) {
+    var d = new Date(timeString.replace(/-/g, "/") + " UTC");
+
+    return d.toLocaleString();
+}
+
+function displayItems(items, start, total, target) {
+	var currentIndex = start;
+	for (var i = start; i < start+total; i ++) {
+		currentIndex = i;
+		if (items[i] != null) {
+			$("#"+target).append(itemHtml(items[i]))
+		} else {
+			reachedBottom = true;
+			return i;
+		}
+	}
+	return start+total;
+}
+
+function itemsInit() {
+	loadingItems = true;
+    $("#loading").show();
+
+	$.ajax({
+		url: '/allItems'
+	})
+	.success(function(items) {
+			lastItemIndex = displayItems(items,lastItemIndex,32,"itemsContainer");
+	}).complete(function(){
+            if (currentylShowing != "")
+                showOnly(currentylShowing);
+            loadingItems = false;
+            $("#loading").hide();
+    });
+
+
+    if (currentylShowing != "") {
+        showOnly(currentylShowing);
+    }
+}
+
+function showImage(imgSrc, imgTitle) {
+	$.magnificPopup.open({
+		items : {
+			src: imgSrc,
+			type: 'image',
+			title: imgTitle
+		}
+	});
+}
+
+function showInline(id) {
+	$("#"+id).foundation('reveal','open');
+}
+
+function allTogglesOff() {
+    var toggles = $("div#toggleIcons a > img");
+    for (var i=0;i<toggles.length;i++) {
+        var offSrc = $(toggles[i]).data("offSrc");
+        if (typeof offSrc != "undefined") {
+            $(toggles[i]).attr("src",offSrc);
+        }
+    }
+}
+
+function toggleIcon(iconA) {
+    allTogglesOff();
+    var a = iconA.currentTarget;
+    var toggleClass = $(a).data("toggleItems");
+    var image = $($(a).children("img")[0]);
+    image.attr("data-off-src",image.attr("src"));
+
+    var imageAlt = $(image).data("onSrc");
+
+    if (currentylShowing == toggleClass) {
+        image.attr("src",image.data("offSrc"));
+        showAll();
+    } else {
+        image.attr("src",image.data("onSrc"));
+        showOnly(toggleClass);
+    }
+
+    return false;
+}
+
+$(document).ready(function() {
+	//load items
+	itemsInit();
+
+	//init magnific
+	//$('.item_link').magnificPopup({type:'inline'});
+
+    $("div#toggleIcons a").on("click",toggleIcon);
+
+});
+
+$(window).scroll(function () {
+	   if (!reachedBottom && !loadingItems && ( $(window).scrollTop() >= $(document).height() - $(window).height() - 10) ) {
+		  console.log(lastItemIndex);
+	      setTimeout(itemsInit(),3000);
+	   }
+	});
