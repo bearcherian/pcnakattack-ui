@@ -39,6 +39,12 @@ class AllItems
 
       result.each do |row|
         row["item_type"] = item["table"]
+
+        # Convert it all to strings
+        row.each do |key, val|
+          row[key] = row[key].to_s
+        end
+
         latestItems << row
       end
 
