@@ -12,7 +12,7 @@ function itemHtml(item){
 
 	var mfpMethodTemplate = "showInline(\"reveal_{{id}}\")";
 
-	if (item.item_type == 'instagrams' || item.media_type !=null) {
+	if (item.item_type == 'instagrams' || item.media_type != "") {
 		item.mediaClass = "media";
 		item.modalSize = 'large';
 		mfpMethodTemplate = "showImage(\"{{&media_url}}{{&image_std}}\",\"{{text}}\")";
@@ -81,7 +81,7 @@ function showAll() {
 
 function timeAgo(timeString) {
 
-    var d = new Date(timeString.replace(/-/g, "/") + " UTC");
+    var d = new Date(timeString);
     var now = new Date();
 
     var agoMs = now.getTime() - d.getTime();
@@ -109,7 +109,7 @@ function timeAgo(timeString) {
 }
 
 function localCreatedTime(timeString) {
-    var d = new Date(timeString.replace(/-/g, "/") + " UTC");
+    var d = new Date(timeString);
 
     return d.toLocaleString();
 }
