@@ -13,8 +13,7 @@ class AllItems
   SELECT_YOUTUBE_ITEM = "SELECT id, publishedAt as created, title as text, channel_id as user_id, authorName as user_fullname, channelTitle as username, profile_picture as profile_image, 'video' as media_type, thumbnail_high as media_url, link FROM youtube WHERE id = ?";
 
   def initialize
-    config = YAML::load_file("config/database.yml")[Rails.env]
-    Rails.logger.info "Config #{@config.to_json}"
+    config = YAML.load(ERB.new(File.read("config/database.yml")).result)[Rails.env]
     @client = Mysql2::Client.new(config)
   end
 
