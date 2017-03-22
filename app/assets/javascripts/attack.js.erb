@@ -1,4 +1,7 @@
+//TODO make this old code better
+
 var lastItemIndex = 0;
+var lastItemDate = ""
 var reachedBottom = false;
 var loadingItems = false;
 var currentylShowing = "";
@@ -114,18 +117,16 @@ function localCreatedTime(timeString) {
     return d.toLocaleString();
 }
 
-function displayItems(items, start, total, target) {
-	var currentIndex = start;
-	for (var i = start; i < start+total; i ++) {
-		currentIndex = i;
+function displayItems(items, target) {
+	for (var i = 0; i < items.length; i ++) {
 		if (items[i] != null) {
 			$("#"+target).append(itemHtml(items[i]))
+      lastItemDate = items[i].created;
 		} else {
 			reachedBottom = true;
 			return i;
 		}
 	}
-	return start+total;
 }
 
 function itemsInit() {
@@ -133,10 +134,11 @@ function itemsInit() {
     $("#loading").show();
 
 	$.ajax({
-		url: '/allItems'
+		url: '/allItems',
+    data: { maxTime: lastItemDate }
 	})
 	.success(function(items) {
-			lastItemIndex = displayItems(items,lastItemIndex,32,"itemsContainer");
+			displayItems(items,"itemsContainer");
 	}).complete(function(){
             if (currentylShowing != "")
                 showOnly(currentylShowing);
@@ -207,7 +209,6 @@ $(document).ready(function() {
 
 $(window).scroll(function () {
 	   if (!reachedBottom && !loadingItems && ( $(window).scrollTop() >= $(document).height() - $(window).height() - 10) ) {
-		  console.log(lastItemIndex);
-	      setTimeout(itemsInit(),3000);
+      setTimeout(itemsInit(),3000);
 	   }
 	});
