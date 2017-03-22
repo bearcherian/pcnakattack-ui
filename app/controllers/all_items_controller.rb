@@ -4,6 +4,14 @@ class AllItemsController < ApplicationController
 
   def show
     items = AllItems.new
-    render json:items.getLatestItems
+
+    if (params.has_key?(:maxTime) && !params[:maxTime].empty?)
+      maxTime = params[:maxTime].to_time
+    else
+      maxTime = Time.new
+    end
+
+    logger.info("Max time: #{maxTime}")
+    render json:items.getLatestItems(maxTime)
   end
 end
